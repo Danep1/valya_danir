@@ -1,5 +1,7 @@
 import pygame
+import random
 import os
+import time
 import sys
 
 
@@ -15,84 +17,92 @@ def load_image(name, colorkey=None):
     return image
 
 
-def load_level(filename):
-    filename = "data/" + filename
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
-    max_width = max(map(len, level_map))
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
-
-
-class Camera:
-    def __init__(self):
-        self.dx = 0
-        self.dy = 0
-
-    def apply(self, obj):
-        obj.rect.x = (obj.rect.x + self.dx) % width
-        obj.rect.y = (obj.rect.y + self.dy) % height
-
-    def update(self, target):
-        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
-        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
-
-
-class Tile(pygame.sprite.Sprite):
-    def __init__(self, tile_type, pos_x, pos_y):
-        super().__init__(tiles_group, all_sprites)
-        self.image = tile_images[tile_type]
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
-
-
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(player_group, all_sprites)
-        self.image = player_image
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+    def __init__(self):
+        super().__init__(all_sprites, player_group)
+        self.image = pygame.transform.scale(player_img, (80, 100))
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.centerx = width // 2
+        self.rect.bottom = height - 10
+        self.speedx = 0
 
-    def update(self, *args):
-        if args:
-            event = args[0]
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    self.move(- tile_width, 0)
-                if event.key == pygame.K_RIGHT:
-                    self.move(tile_width, 0)
-                if event.key == pygame.K_UP:
-                    self.move(0, - tile_height)
-                if event.key == pygame.K_DOWN:
-                    self.move(0, tile_height)
+    def update(self):
+        self.speedx = 0
+        keystate = pygame.key.get_pressed()
+        if keystate[pygame.K_LEFT]:
+            self.speedx = -8
+        if keystate[pygame.K_RIGHT]:
+            self.speedx = 8
+        self.rect.x += self.speedx
+        if self.rect.right > width:
+            self.rect.right = width
+        if self.rect.left < 0:
+            self.rect.left = 0
 
-    def move(self, dx, dy):
-        x, y = self.rect.x, self.rect.y
-        x += dx
-        y += dy
-        if 0 < x < width or 0 < y < height:
-            self.rect.x, self.rect.y = x, y
-
-
-def generate_level(level):
-    new_player, x, y = None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '.':
-                Tile('empty', x, y)
-            elif level[y][x] == '#':
-                Tile('wall', x, y)
-            elif level[y][x] == '@':
-                Tile('empty', x, y)
-                new_player = Player(x, y)
-    return new_player, x, y
+    def shoot(self):
+        bullet = Bullet(self.rect.centerx, self.rect.top)
 
 
-def new_level(file_level_name):
-    try:
-        level = load_level(file_level_name)
-    except FileNotFoundError or FileExistsError:
-        print('!!!ОШИБКА!!! Указанный файл в папке /data не сущесвтует/не найден')
-        return None
+class Mob(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(all_sprites, mobs)
+        self.image = meteor_img
+        self.rect = self.image.get_rect()
+        self.rect = self.rect.move(random.randrange(width - self.rect.width), random.randrange(
+            -100, -40))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.speedy = random.randrange(1, 8)
+        self.speedx = random.randrange(-3, 3)
+
+    def update(self):
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
+        if self.rect.top > height + 10 or self.rect.left < -25 or self.rect.right > width + 20:
+            self.rect.x = random.randrange(width - self.rect.width)
+            self.rect.y = random.randrange(-100, -40)
+            self.speedy = random.randrange(1, 8)
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(all_sprites, bullets)
+        self.image = bullet_img
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.bottom = y
+        self.rect.centerx = x
+        self.speedy = -10
+
+    def update(self):
+        self.rect.y += self.speedy
+        if self.rect.bottom < 0:
+            self.kill()
+
+
+def show_score(choice=1):
+    """Отображение результата"""
+    s_font = pygame.font.SysFont('monaco', 24)
+    s_surf = s_font.render('Time: {0}'.format(str(timeline // 1000)), True, pygame.Color('white'))
+    s_rect = s_surf.get_rect()
+    if choice == 1:
+        s_rect.midtop = (80, 10)
     else:
-        return level
+        s_rect.midtop = (360, 120)
+    screen.blit(s_surf, s_rect)
+
+
+def game_over():
+    """Конец игры при поражении"""
+    go_font = pygame.font.SysFont('monaco', 72)
+    go_surf = go_font.render('Game over', True, pygame.Color('red'))
+    go_rect = go_surf.get_rect()
+    go_rect.midtop = (360, 15)
+    screen.blit(go_surf, go_rect)
+    show_score(0)
+    pygame.display.flip()
+    time.sleep(3)
+    terminate()
 
 
 def terminate():
@@ -101,23 +111,34 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
-                  "Правила игры",
-                  "Если в правилах несколько строк,",
-                  "приходится выводить их построчно"]
+    intro_text = ["STAR WARS", "",
+                  "Давным давно в далекой далекой галактике...", "", "", "",
+                  "Уничтожайте астероиды на своем пути",
+                  "И да прибудет с вами Сила"]
 
-    fon = pygame.transform.scale(load_image('white_background.png'), (width, height))
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
+    fon = pygame.transform.scale(load_image('stars.jpg'), (width, height))
+    screen.blit(background, background_rect)
+    font1 = pygame.font.SysFont('monaco', 54)
+    font2 = pygame.font.SysFont('monaco', 30)
+
     text_coord = 50
-    for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('black'))
-        intro_rect = string_rendered.get_rect()
-        text_coord += 10
-        intro_rect.top = text_coord
-        intro_rect.x = 10
-        text_coord += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
+    for line in range(len(intro_text)):
+        if line == 0:
+            string_rendered = font1.render(intro_text[line], 1, pygame.Color('yellow'))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 10
+            intro_rect.top = text_coord
+            intro_rect.centerx = width // 2
+            text_coord += intro_rect.height
+            screen.blit(string_rendered, intro_rect)
+        else:
+            string_rendered = font2.render(intro_text[line], 1, pygame.Color('blue'))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 10
+            intro_rect.top = text_coord
+            intro_rect.centerx = width // 2
+            text_coord += intro_rect.height
+            screen.blit(string_rendered, intro_rect)
 
     while True:
         for event in pygame.event.get():
@@ -126,56 +147,62 @@ def start_screen():
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 return
         pygame.display.flip()
-        clock.tick(fps)
+        clock.tick(FPS)
 
 
 if __name__ == '__main__':
-    fps = 60
-    size = width, height = 450, 450
-    tile_width = tile_height = 50
-    background = pygame.Color('black')
-
-    level = new_level('level.txt')
+    size = width, height = 800, 800
+    FPS = 60
+    timeline = 0
 
     pygame.init()
-
-    screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
-    screen.fill(background)
+    screen = pygame.display.set_mode(size)
+    pygame.display.set_caption("Star Wars")
     clock = pygame.time.Clock()
 
-    all_sprites = pygame.sprite.Group()
-    tiles_group = pygame.sprite.Group()
-    player_group = pygame.sprite.Group()
-
-    camera = Camera()
-
-    box_image = pygame.transform.scale(load_image('box.png'), (tile_width, tile_height))
-    grass_image = pygame.transform.scale(load_image('grass.png'), (tile_width, tile_height))
-    tile_images = {'wall': box_image, 'empty': grass_image}
-    player_image = pygame.transform.scale(load_image('mario.png', -1),
-                                          (tile_width, tile_height))
-    player, level_x, level_y = generate_level(level)
+    background = load_image("stars.jpg")
+    player_img = load_image("sokol.png", -1)
+    meteor_img = load_image("meteorBrown_med1.png", -1)
+    bullet_img = load_image("laserRed16.png", -1)
+    background_rect = background.get_rect()
 
     start_screen()
+
+    all_sprites = pygame.sprite.Group()
+    mobs = pygame.sprite.Group()
+    bullets = pygame.sprite.Group()
+    player_group = pygame.sprite.Group()
+    player = Player()
+    for i in range(8):
+        m = Mob()
 
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    player.shoot()
                 if event.key == pygame.K_ESCAPE:
                     running = False
-            for _ in all_sprites:
-                _.update(event)
 
-        camera.update(player)
-        for sprite in all_sprites:
-            camera.apply(sprite)
-        screen.fill(background)
+        all_sprites.update()
+
+        hits = pygame.sprite.groupcollide(mobs, bullets, True, True)
+        for hit in hits:
+            m = Mob()
+
+        for _ in mobs:
+            if pygame.sprite.collide_mask(player, _):
+                game_over()
+
+        screen.blit(background, background_rect)
         all_sprites.draw(screen)
         player_group.draw(screen)
-        clock.tick(fps)
+        show_score()
         pygame.display.flip()
+        timeline += 1000 // FPS
+        clock.tick(FPS)
 
     terminate()
