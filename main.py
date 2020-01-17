@@ -83,7 +83,8 @@ class Bullet(pygame.sprite.Sprite):
 def show_score(choice=1):
     """Отображение результата"""
     s_font = pygame.font.SysFont('monaco', 24)
-    s_surf = s_font.render('Time: {0}'.format(str(timeline // 1000)), True, pygame.Color('white'))
+    s_surf = s_font.render(f'Time: {str(timeline // 1000)}       '
+                           f'Score: {score}', True, pygame.Color('white'))
     s_rect = s_surf.get_rect()
     if choice == 1:
         s_rect.midtop = (80, 10)
@@ -154,6 +155,7 @@ if __name__ == '__main__':
     size = width, height = 800, 800
     FPS = 60
     timeline = 0
+    score = 0
 
     pygame.init()
     screen = pygame.display.set_mode(size)
@@ -191,6 +193,7 @@ if __name__ == '__main__':
 
         hits = pygame.sprite.groupcollide(mobs, bullets, True, True)
         for hit in hits:
+            score += 1
             m = Mob()
 
         for _ in mobs:
