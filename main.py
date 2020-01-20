@@ -87,7 +87,7 @@ def show_score(choice=1):
                            f'Score: {score}', True, pygame.Color('white'))
     s_rect = s_surf.get_rect()
     if choice == 1:
-        s_rect.midtop = (80, 10)
+        s_rect.midtop = (120, 10)
     else:
         s_rect.midtop = (width // 2, 120)
     screen.blit(s_surf, s_rect)
