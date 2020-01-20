@@ -52,7 +52,7 @@ class Mob(pygame.sprite.Sprite):
         self.rect = self.rect.move(random.randrange(width - self.rect.width), random.randrange(
             -100, -40))
         self.mask = pygame.mask.from_surface(self.image)
-        self.speedy = random.randrange(1, 8)
+        self.speedy = random.randrange(vmin, vmax)
         self.speedx = random.randrange(-3, 3)
 
     def update(self):
@@ -113,9 +113,13 @@ def terminate():
 
 def start_screen():
     intro_text = ["STAR WARS", "",
-                  "Давным давно в далекой далекой галактике...", "", "", "",
+                  "Давным давно в далекой далекой галактике...",
+                  "Хан Соло вместе с Вукки вновь занимаются контробандой.",
+                  "Но вот незадача: из-за того, что они попали в облако астероидов, ",
+                  "невозможно совершить гипер-прыжок.",
+                  "Ваша задача состоит в том чтобы облететь все космические глыбы и не разбиться.",
                   "Уничтожайте астероиды на своем пути",
-                  "И да прибудет с вами Сила"]
+                  "И да прибудет с вами Сила..."]
 
     fon = pygame.transform.scale(load_image('stars.jpg'), (width, height))
     screen.blit(background, background_rect)
@@ -156,6 +160,8 @@ if __name__ == '__main__':
     FPS = 60
     timeline = 0
     score = 0
+    vmin = 1
+    vmax = 8
 
     pygame.init()
     screen = pygame.display.set_mode(size)
@@ -206,6 +212,9 @@ if __name__ == '__main__':
         show_score()
         pygame.display.flip()
         timeline += 1000 // FPS
+        if timeline % 40 == 0:
+            vmin += 2
+            vmax += 2
         clock.tick(FPS)
 
     terminate()
