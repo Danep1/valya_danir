@@ -89,7 +89,7 @@ def show_score(choice=1):
     if choice == 1:
         s_rect.midtop = (80, 10)
     else:
-        s_rect.midtop = (360, 120)
+        s_rect.midtop = (width // 2, 120)
     screen.blit(s_surf, s_rect)
 
 
@@ -98,7 +98,7 @@ def game_over():
     go_font = pygame.font.SysFont('monaco', 72)
     go_surf = go_font.render('Game over', True, pygame.Color('red'))
     go_rect = go_surf.get_rect()
-    go_rect.midtop = (360, 15)
+    go_rect.midtop = (width // 2, 40)
     screen.blit(go_surf, go_rect)
     show_score(0)
     pygame.display.flip()
@@ -156,7 +156,7 @@ def start_screen():
 
 
 if __name__ == '__main__':
-    size = width, height = 800, 800
+    size = width, height = 1000, 800
     FPS = 60
     timeline = 0
     score = 0
@@ -180,6 +180,7 @@ if __name__ == '__main__':
     mobs = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
+
     player = Player()
     for i in range(8):
         m = Mob()
@@ -212,9 +213,9 @@ if __name__ == '__main__':
         show_score()
         pygame.display.flip()
         timeline += 1000 // FPS
-        if timeline % 40 == 0:
-            vmin += 2
-            vmax += 2
+        if timeline % 20000 == 0:
+            vmin += 4
+            vmax += 4
         clock.tick(FPS)
 
     terminate()
